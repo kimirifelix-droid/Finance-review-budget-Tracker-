@@ -110,13 +110,18 @@ function normalizeTransaction(item) {
   if (!item || typeof item !== "object") return null;
 
   const amount = Number(item.amount);
-  const date = String(item.date || "");
+  const rawDate = String(item.date || "").trim();
+  const date = rawDate.slice(0, 10);
   const type = item.type;
   const category = String(item.category || "Other").trim();
-  const parsedDate = new Date(`${date}T00:00:00`);
+  const parsedDate = new Date(`${date}T00:00:00.000Z`);
+  const hasValidDateFormat =
+    /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ||
+    (/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(rawDate) &&
+      Number.isFinite(Date.parse(rawDate.replace(" ", "T"))));
 
   if (
-    !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
+    !hasValidDateFormat ||
     Number.isNaN(parsedDate.getTime()) ||
     parsedDate.toISOString().slice(0, 10) !== date ||
     !Number.isFinite(amount) ||
