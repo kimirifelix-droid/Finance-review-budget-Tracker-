@@ -973,9 +973,12 @@ function renderTransactions() {
   tableBody.innerHTML = "";
 
   if (!sortedTransactions.length) {
+    const emptyMessage = transactions.length === 0
+      ? "Welcome to your private dashboard. Add your first income or expense above to start tracking."
+      : "No matching transactions found.";
     tableBody.innerHTML = `
       <tr>
-        <td colspan="6" class="empty-state">No matching transactions found.</td>
+        <td colspan="6" class="empty-state">${emptyMessage}</td>
       </tr>
     `;
     return;
