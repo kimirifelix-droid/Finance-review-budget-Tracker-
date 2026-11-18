@@ -80,6 +80,7 @@ const authTitleEl = document.getElementById("auth-title");
 const authIntroEl = document.getElementById("auth-intro");
 const authSubmitBtn = document.getElementById("auth-submit-btn");
 const authModeBtn = document.getElementById("auth-mode-btn");
+const resendConfirmationBtn = document.getElementById("resend-confirmation-btn");
 const forgotPasswordBtn = document.getElementById("forgot-password-btn");
 const authPasswordField = document.getElementById("auth-password-field");
 const authConfirmPasswordField = document.getElementById("auth-confirm-password-field");
@@ -1250,6 +1251,7 @@ function setAuthMode(mode) {
   authConfirmPasswordField.hidden = !isResetPassword;
   authConfirmPasswordInput.required = isResetPassword;
   authConfirmPasswordInput.value = "";
+  resendConfirmationBtn.hidden = true;
   forgotPasswordBtn.hidden = mode !== "signin";
   authPasswordInput.autocomplete = isSignUp || isResetPassword ? "new-password" : "current-password";
   authModeBtn.textContent = isSignUp
@@ -1371,14 +1373,24 @@ authForm.addEventListener("submit", async (event) => {
     if (authMode === "signup" && !result.access_token) {
       setAuthMode("signin");
       authEmailInput.value = email;
-      showAuthMessage("Account created. Check your email to confirm it, then sign in.");
+      resendConfirmationBtn.hidden = false;
+      showAuthMessage("Account created. Check your inbox to confirm your email, or resend the confirmation link.");
       return;
     }
 
     const user = result.user || await window.budgetBackend.getUser();
     await enterApp(user);
   } catch (error) {
-    showAuthMessage(error.message, true);
+    const errorMessage = String(error.message || "");
+    if (
+      authMode === "signin" &&
+      /email[_ ]not[_ ]confirmed/i.test(errorMessage)
+    ) {
+      resendConfirmationBtn.hidden = false;
+      showAuthMessage("Your email still needs confirmation. Check your inbox or resend the confirmation link.");
+    } else {
+      showAuthMessage(errorMessage, true);
+    }
   } finally {
     authSubmitBtn.disabled = !window.budgetBackend.configured;
   }
@@ -1394,6 +1406,26 @@ authModeBtn.addEventListener("click", () => {
 
 forgotPasswordBtn.addEventListener("click", () => {
   setAuthMode("reset-request");
+});
+
+resendConfirmationBtn.addEventListener("click", async () => {
+  const email = authEmailInput.value.trim();
+  if (!email) {
+    showAuthMessage("Enter the email address you used to create your account.", true);
+    authEmailInput.focus();
+    return;
+  }
+
+  resendConfirmationBtn.disabled = true;
+  showAuthMessage("Sending confirmation email...");
+  try {
+    await window.budgetBackend.resendSignupConfirmation(email);
+    showAuthMessage("If the account still needs confirmation, a new link has been sent. Check your inbox and spam folder.");
+  } catch (error) {
+    showAuthMessage(`Could not resend the confirmation email: ${error.message}`, true);
+  } finally {
+    resendConfirmationBtn.disabled = false;
+  }
 });
 
 signOutBtn.addEventListener("click", async () => {

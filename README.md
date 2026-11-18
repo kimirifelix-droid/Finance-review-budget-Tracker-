@@ -15,3 +15,5 @@ The app uses Supabase Auth and the REST API directly; it does not require a buil
 ## Account recovery
 
 On the sign-in screen, choose **Forgot password?** and enter the account email. The email link returns to the app, where the user can set and confirm a new password. Configure the deployed URL in Supabase's allowed redirect URLs for this to work outside localhost.
+
+If a new account requires email confirmation, check the inbox after signing up. The sign-in screen can resend the confirmation link if needed.

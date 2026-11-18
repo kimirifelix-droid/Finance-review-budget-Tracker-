@@ -137,6 +137,13 @@
       if (result && result.access_token) storeSession(result);
       return result;
     },
+    async resendSignupConfirmation(email) {
+      const redirectUrl = `${window.location.origin}${window.location.pathname}`;
+      return request(`/auth/v1/resend?redirect_to=${encodeURIComponent(redirectUrl)}`, {
+        method: "POST",
+        body: JSON.stringify({ email, type: "signup" }),
+      });
+    },
     async requestPasswordReset(email) {
       const redirectUrl = `${window.location.origin}${window.location.pathname}`;
       return request(`/auth/v1/recover?redirect_to=${encodeURIComponent(redirectUrl)}`, {
