@@ -1060,6 +1060,11 @@ async function addOrUpdateTransaction(event) {
       ? await window.budgetBackend.updateTransaction(data)
       : await window.budgetBackend.insertTransaction(data, currentUser.id);
     const normalized = normalizeTransaction(savedItem);
+    if (!normalized) {
+      throw new Error(
+        "Supabase returned invalid transaction data. Refresh the page to verify whether it was saved before trying again."
+      );
+    }
 
     if (editingTransactionId) {
       const index = transactions.findIndex((item) => item.id === editingTransactionId);

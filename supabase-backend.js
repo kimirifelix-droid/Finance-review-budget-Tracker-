@@ -223,6 +223,11 @@
           body: JSON.stringify(transactionPayload(item, userId)),
         }
       );
+      if (!Array.isArray(rows) || !rows[0] || typeof rows[0] !== "object") {
+        throw new Error(
+          "Supabase did not return the saved transaction. Refresh the page to verify whether it was saved before trying again."
+        );
+      }
       return rows[0];
     },
     async insertTransactions(items, userId) {
@@ -251,7 +256,9 @@
           }),
         }
       );
-      if (!rows.length) throw new Error("Transaction not found or access denied.");
+      if (!Array.isArray(rows) || !rows[0] || typeof rows[0] !== "object") {
+        throw new Error("Transaction was not updated or Supabase did not return the updated transaction.");
+      }
       return rows[0];
     },
     async deleteTransaction(id) {
