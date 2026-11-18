@@ -1218,6 +1218,15 @@ function showAuthMessage(message, isError = false) {
   authMessageEl.classList.toggle("error", isError);
 }
 
+function formatAuthError(error) {
+  const message = String(error && error.message ? error.message : "Authentication failed.");
+  const code = String(error && error.code ? error.code : "");
+  if (/email.*rate.?limit|rate.?limit.*email/i.test(`${code} ${message}`)) {
+    return "Supabase has temporarily limited confirmation emails. Repeated retries will not help. Wait for the limit to reset, or ask the app administrator to configure custom SMTP in Supabase. If you already submitted this account, check your inbox or sign in before trying to create it again.";
+  }
+  return message;
+}
+
 function setAuthMode(mode) {
   authMode = mode;
   const isSignUp = mode === "signup";
@@ -1389,7 +1398,7 @@ authForm.addEventListener("submit", async (event) => {
       resendConfirmationBtn.hidden = false;
       showAuthMessage("Your email still needs confirmation. Check your inbox or resend the confirmation link.");
     } else {
-      showAuthMessage(errorMessage, true);
+      showAuthMessage(formatAuthError(error), true);
     }
   } finally {
     authSubmitBtn.disabled = !window.budgetBackend.configured;
@@ -1422,7 +1431,7 @@ resendConfirmationBtn.addEventListener("click", async () => {
     await window.budgetBackend.resendSignupConfirmation(email);
     showAuthMessage("If the account still needs confirmation, a new link has been sent. Check your inbox and spam folder.");
   } catch (error) {
-    showAuthMessage(`Could not resend the confirmation email: ${error.message}`, true);
+    showAuthMessage(formatAuthError(error), true);
   } finally {
     resendConfirmationBtn.disabled = false;
   }

@@ -17,3 +17,7 @@ The app uses Supabase Auth and the REST API directly; it does not require a buil
 On the sign-in screen, choose **Forgot password?** and enter the account email. The email link returns to the app, where the user can set and confirm a new password. Configure the deployed URL in Supabase's allowed redirect URLs for this to work outside localhost.
 
 If a new account requires email confirmation, check the inbox after signing up. The sign-in screen can resend the confirmation link if needed.
+
+## Email delivery
+
+Supabase's built-in email provider has a low sending limit. For reliable public sign-ups and confirmation links, configure a trusted custom SMTP provider in the Supabase Dashboard under **Authentication > SMTP Settings**. Never put SMTP credentials in this browser app. Until SMTP is configured or the limit resets, avoid repeated sign-up or resend attempts.

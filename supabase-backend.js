@@ -56,6 +56,8 @@
           : data;
       const error = new Error(message || `Supabase request failed (${response.status}).`);
       error.status = response.status;
+      const code = data && typeof data === "object" ? data.code || data.error_code : null;
+      if (typeof code === "string") error.code = code;
       throw error;
     }
     return data;
