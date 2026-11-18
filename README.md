@@ -1,6 +1,6 @@
 # Budget Tracker
 
-A browser-based budget tracker with private Supabase accounts, transaction management, monthly budgets, spending analytics, printable transaction records, and JSON import/export.
+A browser-based budget tracker with private Supabase accounts, transaction management, monthly budgets, spending analytics, downloadable and printable receipts, and JSON import/export.
 
 ## Setup
 
@@ -25,4 +25,4 @@ Supabase's built-in email provider has a low sending limit. Password recovery st
 
 ## Printable records
 
-Use **Print** beside a transaction to print an individual income or expense record, or **Print all records** to print the signed-in user's complete transaction history with totals. These are app-generated records, not merchant-issued receipts or proof that a payment cleared.
+Use **Receipt** beside a transaction to print it, or **Download** to save a self-contained HTML receipt that can be opened offline or printed to PDF. **Print all records** prints the signed-in user's complete transaction history with totals. These are app-generated records, not merchant-issued receipts or proof that a payment cleared.

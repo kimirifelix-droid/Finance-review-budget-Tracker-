@@ -508,7 +508,8 @@ h2 {
 .secondary-btn,
 .delete-btn,
 .edit-btn,
-.print-btn {
+.print-btn,
+.download-btn {
   display: inline-flex;
   min-height: 40px;
   align-items: center;
@@ -525,7 +526,8 @@ h2 {
 .secondary-btn:hover,
 .delete-btn:hover,
 .edit-btn:hover,
-.print-btn:hover {
+.print-btn:hover,
+.download-btn:hover {
   transform: translateY(-1px);
 }
 
@@ -533,7 +535,8 @@ h2 {
 .secondary-btn:focus-visible,
 .delete-btn:focus-visible,
 .edit-btn:focus-visible,
-.print-btn:focus-visible {
+.print-btn:focus-visible,
+.download-btn:focus-visible {
   outline: 3px solid rgba(79, 70, 229, 0.25);
   outline-offset: 2px;
 }
@@ -688,7 +691,8 @@ tbody tr:hover {
 
 .edit-btn,
 .delete-btn,
-.print-btn {
+.print-btn,
+.download-btn {
   min-height: 32px;
   padding: 5px 9px;
   font-size: 0.75rem;
@@ -714,6 +718,17 @@ tbody tr:hover {
 
 .print-btn:hover {
   background: #e2e8ff;
+}
+
+.download-btn {
+  margin-right: 5px;
+  border-color: #b7ead4;
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.download-btn:hover {
+  background: #d7f8e9;
 }
 
 .delete-btn {

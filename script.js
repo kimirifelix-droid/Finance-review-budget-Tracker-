@@ -162,6 +162,83 @@ function escapeHtml(value) {
     .replace(/'/g, "&#039;");
 }
 
+function buildReceiptContent(item) {
+  return `
+    <section class="print-receipt">
+      <p class="print-receipt-amount">${formatCurrency(item.amount)}</p>
+      <dl class="print-receipt-details">
+        <div><dt>Type</dt><dd>${escapeHtml(item.type === "income" ? "Income" : "Expense")}</dd></div>
+        <div><dt>Date</dt><dd>${escapeHtml(item.date)}</dd></div>
+        <div><dt>Category</dt><dd>${escapeHtml(item.category)}</dd></div>
+        <div><dt>Note</dt><dd>${escapeHtml(item.description || "No note")}</dd></div>
+        <div><dt>Record ID</dt><dd>${escapeHtml(item.id)}</dd></div>
+      </dl>
+    </section>
+  `;
+}
+
+function downloadTransactionReceipt(item) {
+  const accountEmail = escapeHtml(currentUser && currentUser.email ? currentUser.email : "Account");
+  const printedAt = escapeHtml(new Date().toLocaleString());
+  const receiptTitle = `${item.type === "income" ? "Income" : "Expense"} receipt`;
+  const html = `<!doctype html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${receiptTitle}</title>
+        <style>
+          * { box-sizing: border-box; }
+          body { margin: 0; padding: 32px; color: #172033; font: 15px Arial, sans-serif; }
+          main { max-width: 680px; margin: 0 auto; }
+          header { margin-bottom: 24px; padding-bottom: 14px; border-bottom: 2px solid #d9deea; }
+          header p { margin: 4px 0; color: #566176; }
+          header .brand { color: #4f46e5; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+          h1 { margin: 8px 0 12px; font-size: 1.8rem; }
+          .print-receipt { padding: 22px; border: 1px solid #d9deea; }
+          .print-receipt-amount { margin: 0 0 20px; font-size: 2rem; font-weight: 800; text-align: center; }
+          .print-receipt-details { display: grid; gap: 12px; margin: 0; }
+          .print-receipt-details div { display: grid; grid-template-columns: minmax(100px, .4fr) 1fr; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid #e8ebf2; }
+          dt { color: #566176; font-weight: 700; }
+          dd { margin: 0; overflow-wrap: anywhere; }
+          .disclaimer { margin-top: 24px; color: #566176; font-size: .8rem; line-height: 1.5; }
+          @media print { body { padding: 0; } }
+        </style>
+      </head>
+      <body>
+        <main>
+          <header>
+            <p class="brand">Budget Tracker</p>
+            <h1>${escapeHtml(receiptTitle)}</h1>
+            <p>Account: ${accountEmail}</p>
+            <p>Downloaded: ${printedAt}</p>
+          </header>
+          ${buildReceiptContent(item)}
+          <p class="disclaimer">This is a user-entered budget-tracker record. It is not a merchant-issued receipt or proof that a payment cleared.</p>
+        </main>
+      </body>
+    </html>
+  `;
+  const safeId = String(item.id).replace(/[^a-z0-9_-]/gi, "-").slice(0, 40) || "transaction";
+  const fileName = `budget-tracker-${item.type}-receipt-${item.date}-${safeId}.html`;
+  let downloadUrl;
+
+  try {
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    downloadUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  } catch (error) {
+    alert(`Could not download receipt: ${error.message}`);
+  } finally {
+    if (downloadUrl) window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+  }
+}
+
 function printRecords(items, title) {
   if (!items.length) {
     alert("There are no transactions to print yet.");
@@ -174,18 +251,7 @@ function printRecords(items, title) {
   const accountEmail = escapeHtml(currentUser && currentUser.email ? currentUser.email : "Account");
   const printedAt = escapeHtml(new Date().toLocaleString());
   const content = isReceipt
-    ? `
-      <section class="print-receipt">
-        <p class="print-receipt-amount">${formatCurrency(sortedItems[0].amount)}</p>
-        <dl class="print-receipt-details">
-          <div><dt>Type</dt><dd>${escapeHtml(sortedItems[0].type === "income" ? "Income" : "Expense")}</dd></div>
-          <div><dt>Date</dt><dd>${escapeHtml(sortedItems[0].date)}</dd></div>
-          <div><dt>Category</dt><dd>${escapeHtml(sortedItems[0].category)}</dd></div>
-          <div><dt>Note</dt><dd>${escapeHtml(sortedItems[0].description || "No note")}</dd></div>
-          <div><dt>Record ID</dt><dd>${escapeHtml(sortedItems[0].id)}</dd></div>
-        </dl>
-      </section>
-    `
+    ? buildReceiptContent(sortedItems[0])
     : `
       <section class="print-summary">
         <div><span>Records</span><strong>${sortedItems.length}</strong></div>
@@ -270,6 +336,7 @@ function openDetailDialog(title, explanation, metrics, items = [], options = {})
               <td class="action-cell">
                 <button type="button" class="edit-btn detail-edit-btn" data-id="${item.id}">Edit</button>
                 <button type="button" class="print-btn detail-print-btn" data-id="${escapeHtml(item.id)}" aria-label="Print ${escapeHtml(item.type)} receipt">Receipt</button>
+                <button type="button" class="download-btn detail-download-btn" data-id="${escapeHtml(item.id)}" aria-label="Download ${escapeHtml(item.type)} receipt">Download</button>
                 <button type="button" class="delete-btn detail-delete-btn" data-id="${item.id}">Delete</button>
               </td>
             </tr>
@@ -1078,6 +1145,7 @@ function renderTransactions() {
       <td class="action-cell">
         <button type="button" class="edit-btn" data-id="${item.id}">Edit</button>
         <button type="button" class="print-btn print-receipt-btn" data-id="${escapeHtml(item.id)}" aria-label="Print ${escapeHtml(item.type)} receipt">Receipt</button>
+        <button type="button" class="download-btn download-receipt-btn" data-id="${escapeHtml(item.id)}" aria-label="Download ${escapeHtml(item.type)} receipt">Download</button>
         <button type="button" class="delete-btn" data-id="${item.id}">Delete</button>
       </td>
     `;
@@ -1174,6 +1242,13 @@ async function handleDeleteClick(event) {
   const deleteButton = event.target.closest(".delete-btn");
   const editButton = event.target.closest(".edit-btn");
   const printButton = event.target.closest(".print-receipt-btn");
+  const downloadButton = event.target.closest(".download-receipt-btn");
+
+  if (downloadButton) {
+    const item = transactions.find((transaction) => transaction.id === downloadButton.dataset.id);
+    if (item) downloadTransactionReceipt(item);
+    return;
+  }
 
   if (printButton) {
     const item = transactions.find((transaction) => transaction.id === printButton.dataset.id);
@@ -1608,6 +1683,13 @@ detailTableBodyEl.addEventListener("click", async (event) => {
   const editButton = event.target.closest(".detail-edit-btn");
   const deleteButton = event.target.closest(".detail-delete-btn");
   const printButton = event.target.closest(".detail-print-btn");
+  const downloadButton = event.target.closest(".detail-download-btn");
+
+  if (downloadButton) {
+    const item = transactions.find((transaction) => transaction.id === downloadButton.dataset.id);
+    if (item) downloadTransactionReceipt(item);
+    return;
+  }
 
   if (printButton) {
     const item = transactions.find((transaction) => transaction.id === printButton.dataset.id);
