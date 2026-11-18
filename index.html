@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Budget Tracker</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main id="auth-screen" class="auth-screen">
+      <section class="auth-card">
+        <p class="eyebrow">Private Finance Workspace</p>
+        <h1 id="auth-title">Sign in</h1>
+        <p id="auth-intro" class="auth-intro">Sign in to securely view your own budget and transactions.</p>
+        <form id="auth-form" class="auth-form">
+          <label for="auth-email">Email</label>
+          <input id="auth-email" type="email" autocomplete="email" required />
+          <div id="auth-password-field">
+            <label for="auth-password">Password</label>
+            <input id="auth-password" type="password" minlength="8" autocomplete="current-password" required />
+            <button id="forgot-password-btn" class="forgot-password-btn" type="button">Forgot password?</button>
+          </div>
+          <div id="auth-confirm-password-field" hidden>
+            <label for="auth-confirm-password">Confirm password</label>
+            <input id="auth-confirm-password" type="password" minlength="8" autocomplete="new-password" />
+          </div>
+          <button id="auth-submit-btn" class="primary-btn" type="submit">Sign in</button>
+        </form>
+        <button id="auth-mode-btn" class="auth-mode-btn" type="button">Create an account</button>
+        <p id="auth-message" class="auth-message" role="status" aria-live="polite"></p>
+        <p id="backend-setup-message" class="backend-setup-message" hidden></p>
+      </section>
+    </main>
+
+    <div id="app-shell" class="app-shell" hidden>
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Finance Overview</p>
+          <h1>Budget Tracker</h1>
+        </div>
+
+        <div class="topbar-actions">
+          <div class="account-pill">
+            <span id="signed-in-email"></span>
+            <button id="sign-out-btn" class="secondary-btn ghost-btn" type="button">Sign out</button>
+          </div>
+          <div class="budget-pill">
+            <label for="budget-input">Monthly Budget</label>
+            <div class="budget-row">
+              <input id="budget-input" type="number" min="0" step="0.01" />
+              <button id="save-budget-btn" class="secondary-btn" type="button">
+                Save
+              </button>
+            </div>
+          </div>
+
+          <button id="export-data-btn" class="secondary-btn ghost-btn" type="button">
+            Export
+          </button>
+
+          <button id="import-data-btn" class="secondary-btn ghost-btn" type="button">
+            Import
+          </button>
+
+          <input id="import-file-input" type="file" accept="application/json" hidden />
+
+          <button id="reset-btn" class="secondary-btn danger-btn" type="button">
+            Reset Data
+          </button>
+        </div>
+      </header>
+
+      <section class="summary-grid">
+        <article class="summary-card income-card drillable" data-drilldown="income" tabindex="0" role="button" aria-label="View income details">
+          <span class="label">Income</span>
+          <strong id="income-total">$0.00</strong>
+        </article>
+
+        <article class="summary-card expense-card drillable" data-drilldown="expense" tabindex="0" role="button" aria-label="View expense details">
+          <span class="label">Expenses</span>
+          <strong id="expense-total">$0.00</strong>
+        </article>
+
+        <article class="summary-card balance-card drillable" data-drilldown="balance" tabindex="0" role="button" aria-label="View balance details">
+          <span class="label">Balance</span>
+          <strong id="balance-total">$0.00</strong>
+        </article>
+
+        <article class="summary-card budget-card drillable" data-drilldown="budget" tabindex="0" role="button" aria-label="View budget details">
+          <span class="label">Budget Left</span>
+          <strong id="budget-left-total">$0.00</strong>
+        </article>
+      </section>
+
+      <section class="insights-grid">
+        <article class="card insight-card">
+          <div class="section-heading">
+            <h2>Spending Breakdown</h2>
+          </div>
+          <div id="category-breakdown" class="breakdown-list"></div>
+        </article>
+
+        <article class="card insight-card">
+          <div class="section-heading">
+            <h2>Insights</h2>
+          </div>
+          <ul id="insight-list" class="insight-list"></ul>
+        </article>
+      </section>
+
+      <section class="analytics-grid" aria-label="Advanced analytics">
+        <article class="card analytics-card">
+          <div class="section-heading analytics-heading">
+            <div>
+              <p class="eyebrow">Advanced Analytics</p>
+              <h2>Cash Flow Trend</h2>
+            </div>
+            <span id="analytics-period" class="period-badge">Last 6 months</span>
+          </div>
+          <div id="cashflow-chart" class="cashflow-chart" aria-label="Income and expense trend"></div>
+        </article>
+
+        <article class="card analytics-card">
+          <div class="section-heading">
+            <h2>Financial Health</h2>
+          </div>
+          <div class="health-grid">
+            <div class="health-stat drillable" data-drilldown="savings" tabindex="0" role="button">
+              <span>Savings Rate</span>
+              <strong id="savings-rate">0%</strong>
+              <div class="health-track"><span id="savings-rate-bar"></span></div>
+            </div>
+            <div class="health-stat drillable" data-drilldown="average-spend" tabindex="0" role="button">
+              <span>Avg. Monthly Spend</span>
+              <strong id="average-monthly-spend">$0.00</strong>
+            </div>
+            <div class="health-stat drillable" data-drilldown="expense-count" tabindex="0" role="button">
+              <span>Expense Transactions</span>
+              <strong id="expense-count">0</strong>
+            </div>
+            <div class="health-stat drillable" data-drilldown="largest-expense" tabindex="0" role="button">
+              <span>Largest Expense</span>
+              <strong id="largest-expense">$0.00</strong>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="card spending-pace-card">
+        <div class="section-heading analytics-heading">
+          <div>
+            <p class="eyebrow">Spending Accrual</p>
+            <h2>Budget Pace &amp; Month-End Forecast</h2>
+          </div>
+          <span id="pace-status" class="period-badge">Calculating</span>
+        </div>
+
+        <div class="pace-layout">
+          <div class="pace-summary">
+            <div class="pace-stat drillable" data-drilldown="spent-to-date" tabindex="0" role="button">
+              <span>Spent to Date</span>
+              <strong id="spent-to-date">$0.00</strong>
+            </div>
+            <div class="pace-stat drillable" data-drilldown="projected-spend" tabindex="0" role="button">
+              <span>Projected Month-End</span>
+              <strong id="projected-month-spend">$0.00</strong>
+            </div>
+            <div class="pace-stat drillable" data-drilldown="projection-remaining" tabindex="0" role="button">
+              <span>Remaining Projection</span>
+              <strong id="projection-remaining">$0.00</strong>
+            </div>
+            <div class="pace-stat drillable" data-drilldown="daily-rate" tabindex="0" role="button">
+              <span>Daily Spending Pace</span>
+              <strong id="daily-spending-rate">$0.00/day</strong>
+            </div>
+          </div>
+
+          <div
+            id="spending-accrual-chart"
+            class="accrual-chart drillable"
+            data-drilldown="projected-spend"
+            tabindex="0"
+            role="button"
+            aria-label="Cumulative spending and projected budget pace"
+          ></div>
+        </div>
+        <div class="chart-legend" aria-label="Chart legend">
+          <span><i class="legend-dot actual"></i>Actual spending</span>
+          <span><i class="legend-dot projected"></i>Projected pace</span>
+          <span><i class="legend-dot budget"></i>Budget limit</span>
+        </div>
+      </section>
+
+      <section class="prediction-grid" aria-label="Spending predictions and safety">
+        <article class="card safety-card">
+          <div class="section-heading">
+            <p class="eyebrow">Budget Safety</p>
+            <h2>Spending Safety Score</h2>
+          </div>
+          <div class="safety-layout">
+            <div id="safety-gauge" class="safety-gauge drillable" data-drilldown="safety" tabindex="0" role="button" aria-label="View spending safety details" aria-live="polite">
+              <svg viewBox="0 0 220 130" aria-hidden="true">
+                <path class="gauge-track" d="M 30 110 A 80 80 0 0 1 190 110"></path>
+                <path id="gauge-progress" class="gauge-progress" d="M 30 110 A 80 80 0 0 1 190 110"></path>
+              </svg>
+              <div class="gauge-value">
+                <strong id="safety-score">--</strong>
+                <span id="safety-level">Calculating</span>
+              </div>
+            </div>
+            <div class="safety-message">
+              <strong id="safety-status">Analyzing spending</strong>
+              <p id="safety-description">Add transactions to generate a budget safety assessment.</p>
+              <div class="safety-scale">
+                <span>At risk</span>
+                <span>Stable</span>
+                <span>Safe</span>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="card forecast-card">
+          <div class="section-heading">
+            <p class="eyebrow">Predictions</p>
+            <h2>Upcoming Spend</h2>
+          </div>
+          <div class="forecast-list">
+            <div class="forecast-item drillable" data-drilldown="next-month" tabindex="0" role="button">
+              <span>Next Month Estimate</span>
+              <strong id="next-month-prediction">$0.00</strong>
+              <small id="next-month-comparison">Based on recent spending</small>
+            </div>
+            <div class="forecast-item drillable" data-drilldown="safe-daily" tabindex="0" role="button">
+              <span>Safe Daily Limit</span>
+              <strong id="safe-daily-limit">$0.00/day</strong>
+              <small id="safe-days-left">Until month end</small>
+            </div>
+            <div class="forecast-item drillable" data-drilldown="overspend-risk" tabindex="0" role="button">
+              <span>Overspend Risk</span>
+              <strong id="overspend-risk">Low</strong>
+              <small id="overspend-detail">No immediate concern</small>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="card">
+        <h2>Add Transaction</h2>
+
+        <form id="transaction-form" class="transaction-form">
+          <div class="field">
+            <label for="transaction-type">Type</label>
+            <select id="transaction-type">
+              <option value="expense">Expense</option>
+              <option value="income">Income</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="category-select">Category</label>
+            <select id="category-select"></select>
+          </div>
+
+          <div class="field">
+            <label for="amount-input">Amount</label>
+            <input
+              id="amount-input"
+              type="number"
+              min="0.01"
+              step="0.01"
+              placeholder="0.00"
+              required
+            />
+          </div>
+
+          <div class="field">
+            <label for="date-input">Date</label>
+            <input id="date-input" type="date" required />
+          </div>
+
+          <div class="field full-width">
+            <label for="description-input">Note</label>
+            <input
+              id="description-input"
+              type="text"
+              maxlength="80"
+              placeholder="Lunch, salary, rent..."
+            />
+          </div>
+
+          <button id="submit-transaction-btn" type="submit" class="primary-btn">
+            Add Transaction
+          </button>
+        </form>
+      </section>
+
+      <section class="card">
+        <div class="table-header">
+          <h2>Transactions</h2>
+          <div class="filter-toolbar">
+            <div class="filter-row">
+              <label for="filter-month">Month</label>
+              <input id="filter-month" type="month" />
+            </div>
+
+            <div class="filter-row">
+              <label for="filter-type">Type</label>
+              <select id="filter-type">
+                <option value="all">All</option>
+                <option value="income">Income</option>
+                <option value="expense">Expense</option>
+              </select>
+            </div>
+
+            <div class="filter-row">
+              <label for="filter-category">Category</label>
+              <select id="filter-category"></select>
+            </div>
+
+            <div class="filter-row search-row">
+              <label for="search-input">Search</label>
+              <input
+                id="search-input"
+                type="search"
+                placeholder="Search note or category"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Category</th>
+                <th>Amount</th>
+                <th>Date</th>
+                <th>Note</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="transaction-table-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <dialog id="detail-dialog" class="detail-dialog">
+      <div class="detail-dialog-header">
+        <div>
+          <p id="detail-eyebrow" class="eyebrow">Data Behind</p>
+          <h2 id="detail-title">Details</h2>
+        </div>
+        <button id="close-detail-btn" class="detail-close-btn" type="button" aria-label="Close details">&times;</button>
+      </div>
+      <p id="detail-explanation" class="detail-explanation"></p>
+      <div id="detail-metrics" class="detail-metrics"></div>
+      <div id="detail-action-bar" class="detail-action-bar" hidden>
+        <label for="detail-budget-input">Monthly budget</label>
+        <input id="detail-budget-input" type="number" min="0" step="0.01" />
+        <button id="detail-save-budget-btn" type="button" class="secondary-btn">Save Budget</button>
+      </div>
+      <div class="detail-table-wrap">
+        <table class="detail-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Category</th>
+              <th>Type</th>
+              <th>Amount</th>
+              <th>Note</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="detail-table-body"></tbody>
+        </table>
+      </div>
+    </dialog>
+
+    <script src="supabase-config.js"></script>
+    <script src="supabase-backend.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>
+
