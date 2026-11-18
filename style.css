@@ -507,7 +507,8 @@ h2 {
 .primary-btn,
 .secondary-btn,
 .delete-btn,
-.edit-btn {
+.edit-btn,
+.print-btn {
   display: inline-flex;
   min-height: 40px;
   align-items: center;
@@ -523,14 +524,16 @@ h2 {
 .primary-btn:hover,
 .secondary-btn:hover,
 .delete-btn:hover,
-.edit-btn:hover {
+.edit-btn:hover,
+.print-btn:hover {
   transform: translateY(-1px);
 }
 
 .primary-btn:focus-visible,
 .secondary-btn:focus-visible,
 .delete-btn:focus-visible,
-.edit-btn:focus-visible {
+.edit-btn:focus-visible,
+.print-btn:focus-visible {
   outline: 3px solid rgba(79, 70, 229, 0.25);
   outline-offset: 2px;
 }
@@ -684,7 +687,8 @@ tbody tr:hover {
 }
 
 .edit-btn,
-.delete-btn {
+.delete-btn,
+.print-btn {
   min-height: 32px;
   padding: 5px 9px;
   font-size: 0.75rem;
@@ -701,6 +705,17 @@ tbody tr:hover {
   background: #f5f6fa;
 }
 
+.print-btn {
+  margin-right: 5px;
+  border-color: var(--line);
+  background: #eef2ff;
+  color: var(--primary);
+}
+
+.print-btn:hover {
+  background: #e2e8ff;
+}
+
 .delete-btn {
   background: var(--danger);
   color: #fff;
@@ -708,6 +723,161 @@ tbody tr:hover {
 
 .delete-btn:hover {
   background: var(--danger-dark);
+}
+
+#print-area {
+  display: none;
+}
+
+.print-document {
+  color: #172033;
+  font-family: Arial, sans-serif;
+}
+
+.print-header {
+  margin-bottom: 24px;
+  padding-bottom: 14px;
+  border-bottom: 2px solid #d9deea;
+}
+
+.print-header .eyebrow {
+  margin-bottom: 8px;
+  color: #4f46e5;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.print-header h1 {
+  margin-bottom: 10px;
+  font-size: 1.8rem;
+}
+
+.print-header p:not(.eyebrow) {
+  margin: 4px 0;
+  color: #566176;
+}
+
+.print-receipt {
+  max-width: 620px;
+  margin: 0 auto;
+  padding: 22px;
+  border: 1px solid #d9deea;
+  border-radius: 12px;
+}
+
+.print-receipt-amount {
+  margin: 0 0 20px;
+  color: #172033;
+  font-size: 2rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.print-receipt-details {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.print-receipt-details div {
+  display: grid;
+  grid-template-columns: minmax(100px, 0.4fr) 1fr;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e8ebf2;
+}
+
+.print-receipt-details dt {
+  color: #566176;
+  font-weight: 700;
+}
+
+.print-receipt-details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.print-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 18px 0;
+}
+
+.print-summary div {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid #d9deea;
+  border-radius: 8px;
+}
+
+.print-summary span {
+  color: #566176;
+  font-size: 0.8rem;
+}
+
+.print-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.print-table th,
+.print-table td {
+  padding: 8px 6px;
+  border-bottom: 1px solid #d9deea;
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.print-table th {
+  background: #f3f5fa;
+}
+
+.print-disclaimer {
+  margin-top: 24px;
+  color: #566176;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+@media print {
+  @page {
+    margin: 14mm;
+  }
+
+  body.printing-records {
+    background: #fff !important;
+    color: #111 !important;
+  }
+
+  body.printing-records > :not(#print-area) {
+    display: none !important;
+  }
+
+  body.printing-records #print-area {
+    display: block !important;
+  }
+
+  .print-document {
+    max-width: none;
+  }
+
+  .print-receipt {
+    border-color: #9aa3b5;
+    border-radius: 0;
+  }
+
+  .print-summary div {
+    border-radius: 0;
+  }
+
+  .print-table {
+    font-size: 9pt;
+  }
 }
 
 .empty-state {

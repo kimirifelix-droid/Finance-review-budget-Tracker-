@@ -29,6 +29,8 @@ const budgetLeftTotalEl = document.getElementById("budget-left-total");
 const budgetInput = document.getElementById("budget-input");
 const saveBudgetBtn = document.getElementById("save-budget-btn");
 const exportDataBtn = document.getElementById("export-data-btn");
+const printRecordsBtn = document.getElementById("print-records-btn");
+const printAreaEl = document.getElementById("print-area");
 const importDataBtn = document.getElementById("import-data-btn");
 const importFileInput = document.getElementById("import-file-input");
 const resetBtn = document.getElementById("reset-btn");
@@ -160,6 +162,80 @@ function escapeHtml(value) {
     .replace(/'/g, "&#039;");
 }
 
+function printRecords(items, title) {
+  if (!items.length) {
+    alert("There are no transactions to print yet.");
+    return;
+  }
+
+  const sortedItems = [...items].sort((a, b) => new Date(b.date) - new Date(a.date));
+  const totals = calculateTotals(sortedItems);
+  const isReceipt = sortedItems.length === 1;
+  const accountEmail = escapeHtml(currentUser && currentUser.email ? currentUser.email : "Account");
+  const printedAt = escapeHtml(new Date().toLocaleString());
+  const content = isReceipt
+    ? `
+      <section class="print-receipt">
+        <p class="print-receipt-amount">${formatCurrency(sortedItems[0].amount)}</p>
+        <dl class="print-receipt-details">
+          <div><dt>Type</dt><dd>${escapeHtml(sortedItems[0].type === "income" ? "Income" : "Expense")}</dd></div>
+          <div><dt>Date</dt><dd>${escapeHtml(sortedItems[0].date)}</dd></div>
+          <div><dt>Category</dt><dd>${escapeHtml(sortedItems[0].category)}</dd></div>
+          <div><dt>Note</dt><dd>${escapeHtml(sortedItems[0].description || "No note")}</dd></div>
+          <div><dt>Record ID</dt><dd>${escapeHtml(sortedItems[0].id)}</dd></div>
+        </dl>
+      </section>
+    `
+    : `
+      <section class="print-summary">
+        <div><span>Records</span><strong>${sortedItems.length}</strong></div>
+        <div><span>Total income</span><strong>${formatCurrency(totals.income)}</strong></div>
+        <div><span>Total expenses</span><strong>${formatCurrency(totals.expense)}</strong></div>
+        <div><span>Net</span><strong>${formatCurrency(totals.balance)}</strong></div>
+      </section>
+      <table class="print-table">
+        <thead>
+          <tr><th>Date</th><th>Type</th><th>Category</th><th>Amount</th><th>Note</th><th>Record ID</th></tr>
+        </thead>
+        <tbody>
+          ${sortedItems.map((item) => `
+            <tr>
+              <td>${escapeHtml(item.date)}</td>
+              <td>${escapeHtml(item.type === "income" ? "Income" : "Expense")}</td>
+              <td>${escapeHtml(item.category)}</td>
+              <td>${formatCurrency(item.amount)}</td>
+              <td>${escapeHtml(item.description || "No note")}</td>
+              <td>${escapeHtml(item.id)}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    `;
+
+  printAreaEl.innerHTML = `
+    <article class="print-document">
+      <header class="print-header">
+        <p class="eyebrow">Budget Tracker</p>
+        <h1>${escapeHtml(title)}</h1>
+        <p>Account: ${accountEmail}</p>
+        <p>Printed: ${printedAt}</p>
+      </header>
+      ${content}
+      <p class="print-disclaimer">This is a user-entered budget-tracker record. It is not a merchant-issued receipt or proof that a payment cleared.</p>
+    </article>
+  `;
+  printAreaEl.hidden = false;
+  document.body.classList.add("printing-records");
+
+  const cleanup = () => {
+    document.body.classList.remove("printing-records");
+    printAreaEl.hidden = true;
+    printAreaEl.innerHTML = "";
+  };
+  window.addEventListener("afterprint", cleanup, { once: true });
+  window.print();
+}
+
 function openDetailDialog(title, explanation, metrics, items = [], options = {}) {
   detailTitleEl.textContent = title;
   detailExplanationEl.textContent = explanation;
@@ -193,6 +269,7 @@ function openDetailDialog(title, explanation, metrics, items = [], options = {})
               <td>${escapeHtml(item.description || "No note")}</td>
               <td class="action-cell">
                 <button type="button" class="edit-btn detail-edit-btn" data-id="${item.id}">Edit</button>
+                <button type="button" class="print-btn detail-print-btn" data-id="${escapeHtml(item.id)}" aria-label="Print ${escapeHtml(item.type)} receipt">Receipt</button>
                 <button type="button" class="delete-btn detail-delete-btn" data-id="${item.id}">Delete</button>
               </td>
             </tr>
@@ -1000,6 +1077,7 @@ function renderTransactions() {
       <td>${escapeHtml(item.description || "No note")}</td>
       <td class="action-cell">
         <button type="button" class="edit-btn" data-id="${item.id}">Edit</button>
+        <button type="button" class="print-btn print-receipt-btn" data-id="${escapeHtml(item.id)}" aria-label="Print ${escapeHtml(item.type)} receipt">Receipt</button>
         <button type="button" class="delete-btn" data-id="${item.id}">Delete</button>
       </td>
     `;
@@ -1095,6 +1173,13 @@ async function addOrUpdateTransaction(event) {
 async function handleDeleteClick(event) {
   const deleteButton = event.target.closest(".delete-btn");
   const editButton = event.target.closest(".edit-btn");
+  const printButton = event.target.closest(".print-receipt-btn");
+
+  if (printButton) {
+    const item = transactions.find((transaction) => transaction.id === printButton.dataset.id);
+    if (item) printRecords([item], `${item.type === "income" ? "Income" : "Expense"} receipt`);
+    return;
+  }
 
   if (deleteButton) {
     const { id } = deleteButton.dataset;
@@ -1470,6 +1555,7 @@ resetBtn.addEventListener("click", async () => {
 
 saveBudgetBtn.addEventListener("click", handleBudgetSave);
 exportDataBtn.addEventListener("click", exportTransactions);
+printRecordsBtn.addEventListener("click", () => printRecords(transactions, "Transaction Records"));
 importDataBtn.addEventListener("click", () => importFileInput.click());
 importFileInput.addEventListener("change", (event) => {
   const [file] = event.target.files;
@@ -1521,6 +1607,13 @@ detailSaveBudgetBtn.addEventListener("click", async () => {
 detailTableBodyEl.addEventListener("click", async (event) => {
   const editButton = event.target.closest(".detail-edit-btn");
   const deleteButton = event.target.closest(".detail-delete-btn");
+  const printButton = event.target.closest(".detail-print-btn");
+
+  if (printButton) {
+    const item = transactions.find((transaction) => transaction.id === printButton.dataset.id);
+    if (item) printRecords([item], `${item.type === "income" ? "Income" : "Expense"} receipt`);
+    return;
+  }
 
   if (editButton) {
     const item = transactions.find((transaction) => transaction.id === editButton.dataset.id);

@@ -1,6 +1,6 @@
 # Budget Tracker
 
-A browser-based budget tracker with private Supabase accounts, transaction management, monthly budgets, spending analytics, and JSON import/export.
+A browser-based budget tracker with private Supabase accounts, transaction management, monthly budgets, spending analytics, printable transaction records, and JSON import/export.
 
 ## Setup
 
@@ -22,3 +22,7 @@ On the sign-in screen, choose **Forgot password?** and enter the account email. 
 ## Email delivery
 
 Supabase's built-in email provider has a low sending limit. Password recovery still sends email, so configure a trusted custom SMTP provider in the Supabase Dashboard under **Authentication > SMTP Settings** for reliable delivery. Never put SMTP credentials in this browser app.
+
+## Printable records
+
+Use **Print** beside a transaction to print an individual income or expense record, or **Print all records** to print the signed-in user's complete transaction history with totals. These are app-generated records, not merchant-issued receipts or proof that a payment cleared.
