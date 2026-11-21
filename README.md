@@ -13,6 +13,10 @@ A browser-based budget tracker with private Supabase accounts, transaction manag
 
 The app uses Supabase Auth and the REST API directly; it does not require a build step. Never put a Supabase service-role key in the browser app.
 
+Each account can choose its currency from the dashboard. The initial choice uses the browser's regional locale when available. Amounts are converted from USD using the public daily currency feed; stored transactions and budgets remain in USD, and new input is converted back to USD before it is saved. The app sends only a request for USD exchange rates to the public provider, not account or transaction data. Rates are indicative, not a transaction quote. If rates are unavailable, the dashboard remains usable in USD and shows a notice. If an existing database has not yet been migrated, sign-in and budget tracking continue to work and the currency is saved in that browser until the currency column is added. Re-run `supabase-schema.sql` to enable account-wide currency settings.
+
+The schema creates a private admin allowlist and a server-side visitor-records function. When the allowlist is empty, the first account by creation time that has signed in is added as the super admin. Run the updated `supabase-schema.sql` in the Supabase SQL Editor to enable this bootstrap and the admin-only **Visitors** button. That panel lists account emails and their last sign-in/account-creation times. It tracks authenticated accounts only, not anonymous page visitors, and it does not expose transaction data.
+
 Disabling email confirmation means users can register an address they have not verified. Enable confirmation and configure custom SMTP instead if verified email ownership is required.
 
 ## Account recovery

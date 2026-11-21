@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Budget Tracker</title>
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="style.css?v=2" />
   </head>
   <body>
     <main id="auth-screen" class="auth-screen">
@@ -47,7 +47,29 @@
             <span id="signed-in-email"></span>
             <button id="sign-out-btn" class="secondary-btn ghost-btn" type="button">Sign out</button>
           </div>
+          <button
+            id="admin-toggle-btn"
+            class="secondary-btn ghost-btn admin-toggle-btn"
+            type="button"
+            aria-controls="admin-panel"
+            aria-expanded="false"
+            aria-label="Open visitor records"
+            title="Visitor records"
+            hidden
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            <span>Visitors</span>
+          </button>
           <div class="budget-pill">
+            <label for="currency-select">Currency</label>
+            <select id="currency-select" class="currency-select"></select>
+            <small id="currency-note" class="currency-note" aria-live="polite">
+              Currency conversion uses live rates; stored amounts remain in USD.
+            </small>
             <label for="budget-input">Monthly Budget</label>
             <div class="budget-row">
               <input id="budget-input" type="number" min="0" step="0.01" />
@@ -77,25 +99,43 @@
         </div>
       </header>
 
+      <section id="admin-panel" class="card admin-panel" aria-labelledby="admin-dashboard-title" hidden>
+        <p class="eyebrow">Admin</p>
+        <h2 id="admin-dashboard-title">Visitors dashboard</h2>
+        <p><strong id="admin-login-count">0</strong> accounts have signed in.</p>
+        <div class="admin-records-wrap">
+          <table class="admin-records-table">
+            <thead>
+              <tr>
+                <th>Account</th>
+                <th>Last sign-in</th>
+                <th>Account created</th>
+              </tr>
+            </thead>
+            <tbody id="admin-login-records"></tbody>
+          </table>
+        </div>
+      </section>
+
       <section class="summary-grid">
         <article class="summary-card income-card drillable" data-drilldown="income" tabindex="0" role="button" aria-label="View income details">
           <span class="label">Income</span>
-          <strong id="income-total">$0.00</strong>
+          <strong id="income-total">0.00</strong>
         </article>
 
         <article class="summary-card expense-card drillable" data-drilldown="expense" tabindex="0" role="button" aria-label="View expense details">
           <span class="label">Expenses</span>
-          <strong id="expense-total">$0.00</strong>
+          <strong id="expense-total">0.00</strong>
         </article>
 
         <article class="summary-card balance-card drillable" data-drilldown="balance" tabindex="0" role="button" aria-label="View balance details">
           <span class="label">Balance</span>
-          <strong id="balance-total">$0.00</strong>
+          <strong id="balance-total">0.00</strong>
         </article>
 
         <article class="summary-card budget-card drillable" data-drilldown="budget" tabindex="0" role="button" aria-label="View budget details">
           <span class="label">Budget Left</span>
-          <strong id="budget-left-total">$0.00</strong>
+          <strong id="budget-left-total">0.00</strong>
         </article>
       </section>
 
@@ -139,7 +179,7 @@
             </div>
             <div class="health-stat drillable" data-drilldown="average-spend" tabindex="0" role="button">
               <span>Avg. Monthly Spend</span>
-              <strong id="average-monthly-spend">$0.00</strong>
+              <strong id="average-monthly-spend">0.00</strong>
             </div>
             <div class="health-stat drillable" data-drilldown="expense-count" tabindex="0" role="button">
               <span>Expense Transactions</span>
@@ -147,7 +187,7 @@
             </div>
             <div class="health-stat drillable" data-drilldown="largest-expense" tabindex="0" role="button">
               <span>Largest Expense</span>
-              <strong id="largest-expense">$0.00</strong>
+              <strong id="largest-expense">0.00</strong>
             </div>
           </div>
         </article>
@@ -166,19 +206,19 @@
           <div class="pace-summary">
             <div class="pace-stat drillable" data-drilldown="spent-to-date" tabindex="0" role="button">
               <span>Spent to Date</span>
-              <strong id="spent-to-date">$0.00</strong>
+              <strong id="spent-to-date">0.00</strong>
             </div>
             <div class="pace-stat drillable" data-drilldown="projected-spend" tabindex="0" role="button">
               <span>Projected Month-End</span>
-              <strong id="projected-month-spend">$0.00</strong>
+              <strong id="projected-month-spend">0.00</strong>
             </div>
             <div class="pace-stat drillable" data-drilldown="projection-remaining" tabindex="0" role="button">
               <span>Remaining Projection</span>
-              <strong id="projection-remaining">$0.00</strong>
+              <strong id="projection-remaining">0.00</strong>
             </div>
             <div class="pace-stat drillable" data-drilldown="daily-rate" tabindex="0" role="button">
               <span>Daily Spending Pace</span>
-              <strong id="daily-spending-rate">$0.00/day</strong>
+              <strong id="daily-spending-rate">0.00/day</strong>
             </div>
           </div>
 
@@ -235,12 +275,12 @@
           <div class="forecast-list">
             <div class="forecast-item drillable" data-drilldown="next-month" tabindex="0" role="button">
               <span>Next Month Estimate</span>
-              <strong id="next-month-prediction">$0.00</strong>
+              <strong id="next-month-prediction">0.00</strong>
               <small id="next-month-comparison">Based on recent spending</small>
             </div>
             <div class="forecast-item drillable" data-drilldown="safe-daily" tabindex="0" role="button">
               <span>Safe Daily Limit</span>
-              <strong id="safe-daily-limit">$0.00/day</strong>
+              <strong id="safe-daily-limit">0.00/day</strong>
               <small id="safe-days-left">Until month end</small>
             </div>
             <div class="forecast-item drillable" data-drilldown="overspend-risk" tabindex="0" role="button">

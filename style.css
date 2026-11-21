@@ -242,6 +242,20 @@ h2 {
   text-overflow: ellipsis;
 }
 
+.admin-toggle-btn {
+  gap: 8px;
+}
+
+.admin-toggle-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
 .budget-pill {
   min-width: 205px;
   padding: 10px 12px;
@@ -257,6 +271,29 @@ h2 {
   color: var(--muted);
   font-size: 0.72rem;
   font-weight: 700;
+}
+
+.budget-pill .currency-select {
+  width: 100%;
+  min-height: 34px;
+  margin-bottom: 5px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--text);
+  font-size: 0.8rem;
+}
+
+.currency-note {
+  display: block;
+  margin-bottom: 9px;
+  color: var(--muted);
+  font-size: 0.66rem;
+}
+
+.currency-note.warning {
+  color: #9a5b16;
 }
 
 .budget-row {
@@ -419,6 +456,27 @@ h2 {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.admin-records-wrap {
+  max-height: 280px;
+  overflow: auto;
+  margin-top: 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.admin-panel > p:not(.eyebrow) {
+  margin: 8px 0 0;
+  color: var(--muted);
+}
+
+.admin-panel {
+  scroll-margin-top: 20px;
+}
+
+.admin-records-table {
+  min-width: 620px;
 }
 
 .insight-item {

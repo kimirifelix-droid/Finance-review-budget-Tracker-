@@ -110,6 +110,25 @@
     }
   }
 
+  function isMissingCurrencyColumn(error) {
+    const message = String(error && error.message ? error.message : "");
+    return (
+      (error && error.code === "42703" && /\bcurrency\b/i.test(message)) ||
+      /column\s+user_settings\.currency\s+does not exist/i.test(message) ||
+      /could not find the ['"]currency['"] column.*user_settings/i.test(message)
+    );
+  }
+
+  function isMissingAdminDashboardFunction(error) {
+    const message = String(error && error.message ? error.message : "");
+    return (
+      (error && (error.code === "PGRST202" || error.code === "42883")) &&
+      /get_admin_dashboard_stats/i.test(message)
+    );
+  }
+
+  let currencyColumnAvailable = true;
+
   function transactionPayload(item, userId) {
     return {
       user_id: userId,
@@ -282,23 +301,89 @@
         { method: "DELETE" }
       );
     },
-    async loadBudget(userId) {
-      const rows = await authorizedRequest(
-        `/rest/v1/user_settings?user_id=eq.${encodeURIComponent(userId)}&select=monthly_budget`,
-        { method: "GET" }
-      );
-      return rows.length ? Number(rows[0].monthly_budget) : null;
+    async loadSettings(userId) {
+      try {
+        const rows = await authorizedRequest(
+          `/rest/v1/user_settings?user_id=eq.${encodeURIComponent(userId)}&select=monthly_budget,currency`,
+          { method: "GET" }
+        );
+        return rows.length
+          ? {
+            monthlyBudget: Number(rows[0].monthly_budget),
+            currency: String(rows[0].currency || ""),
+            currencyStorageAvailable: true,
+          }
+          : null;
+      } catch (error) {
+        if (!isMissingCurrencyColumn(error)) throw error;
+        currencyColumnAvailable = false;
+        const rows = await authorizedRequest(
+          `/rest/v1/user_settings?user_id=eq.${encodeURIComponent(userId)}&select=monthly_budget`,
+          { method: "GET" }
+        );
+        return {
+          monthlyBudget: rows.length ? Number(rows[0].monthly_budget) : null,
+          currency: "",
+          currencyStorageAvailable: false,
+        };
+      }
     },
-    async saveBudget(userId, monthlyBudget) {
-      const rows = await authorizedRequest(
-        "/rest/v1/user_settings?on_conflict=user_id",
-        {
-          method: "POST",
-          headers: { Prefer: "resolution=merge-duplicates,return=representation" },
-          body: JSON.stringify({ user_id: userId, monthly_budget: monthlyBudget }),
+    async saveSettings(userId, settings) {
+      const save = async (includeCurrency) => {
+        const body = {
+          user_id: userId,
+          monthly_budget: settings.monthlyBudget,
+        };
+        if (includeCurrency) body.currency = settings.currency;
+        const rows = await authorizedRequest(
+          "/rest/v1/user_settings?on_conflict=user_id",
+          {
+            method: "POST",
+            headers: { Prefer: "resolution=merge-duplicates,return=representation" },
+            body: JSON.stringify(body),
+          }
+        );
+        if (!rows || !rows.length) throw new Error("Settings were not saved.");
+      };
+
+      if (!currencyColumnAvailable) {
+        await save(false);
+        return;
+      }
+      try {
+        await save(true);
+      } catch (error) {
+        if (!isMissingCurrencyColumn(error)) throw error;
+        currencyColumnAvailable = false;
+        await save(false);
+      }
+    },
+    async loadAdminDashboardStats() {
+      try {
+        const stats = await authorizedRequest(
+          "/rest/v1/rpc/get_admin_dashboard_stats",
+          { method: "POST", body: JSON.stringify({}) }
+        );
+        if (
+          !stats ||
+          typeof stats.is_admin !== "boolean" ||
+          (stats.is_admin && (
+            !Number.isInteger(stats.logged_in_users) ||
+            stats.logged_in_users < 0 ||
+            !Array.isArray(stats.login_records)
+          ))
+        ) {
+          throw new Error("Admin dashboard returned invalid usage statistics.");
         }
-      );
-      if (!rows || !rows.length) throw new Error("Budget was not saved.");
+        return {
+          isAdmin: stats.is_admin,
+          loggedInUsers: stats.is_admin ? stats.logged_in_users : 0,
+          loginRecords: stats.is_admin ? stats.login_records : [],
+        };
+      } catch (error) {
+        if (!isMissingAdminDashboardFunction(error)) throw error;
+        return { isAdmin: false, loggedInUsers: 0, loginRecords: [] };
+      }
     },
   };
 

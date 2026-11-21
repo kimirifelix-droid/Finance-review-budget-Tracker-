@@ -1,5 +1,52 @@
-const STORAGE_VERSION = 3;
+const STORAGE_VERSION = 4;
 const DEFAULT_BUDGET = 2500;
+const BASE_CURRENCY = "USD";
+const EXCHANGE_RATE_URL = "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json";
+const REGION_CURRENCIES = Object.fromEntries([
+  ["AED", "AE"], ["AFN", "AF"], ["ALL", "AL"], ["AMD", "AM"], ["AOA", "AO"],
+  ["ARS", "AR"], ["AUD", "AU CC CX HM KI NF NR TV"], ["AWG", "AW"], ["AZN", "AZ"],
+  ["BAM", "BA"], ["BBD", "BB"], ["BDT", "BD"], ["BHD", "BH"], ["BIF", "BI"],
+  ["BMD", "BM"], ["BND", "BN"], ["BOB", "BO"], ["BRL", "BR"], ["BSD", "BS"],
+  ["BTN", "BT"], ["BWP", "BW"], ["BYN", "BY"], ["BZD", "BZ"], ["CAD", "CA"],
+  ["CDF", "CD"], ["CHF", "CH LI"], ["CLP", "CL"], ["CNY", "CN"], ["COP", "CO"],
+  ["CRC", "CR"], ["CUP", "CU"], ["CVE", "CV"], ["CZK", "CZ"], ["DJF", "DJ"],
+  ["DKK", "DK FO GL"], ["DOP", "DO"], ["DZD", "DZ"], ["EGP", "EG"], ["ERN", "ER"],
+  ["ETB", "ET"], ["EUR", "AD AT AX BE BG BL CY DE EE ES FI FR GF GP GR HR IE IT LT LU LV MC ME MF MQ MT NL PM PT RE SI SK SM VA XK YT"],
+  ["FJD", "FJ"], ["FKP", "FK"], ["GBP", "GB GG IM JE"], ["GEL", "GE"],
+  ["GHS", "GH"], ["GIP", "GI"], ["GMD", "GM"], ["GNF", "GN"], ["GTQ", "GT"],
+  ["GYD", "GY"], ["HKD", "HK"], ["HNL", "HN"], ["HTG", "HT"], ["HUF", "HU"],
+  ["IDR", "ID"], ["ILS", "IL PS"], ["INR", "IN"], ["IQD", "IQ"], ["IRR", "IR"],
+  ["ISK", "IS"], ["JMD", "JM"], ["JOD", "JO"], ["JPY", "JP"], ["KES", "KE"],
+  ["KGS", "KG"], ["KHR", "KH"], ["KMF", "KM"], ["KPW", "KP"], ["KRW", "KR"],
+  ["KWD", "KW"], ["KYD", "KY"], ["KZT", "KZ"], ["LAK", "LA"], ["LBP", "LB"],
+  ["LKR", "LK"], ["LRD", "LR"], ["LSL", "LS"], ["LYD", "LY"], ["MAD", "EH MA"],
+  ["MDL", "MD"], ["MGA", "MG"], ["MKD", "MK"], ["MMK", "MM"], ["MNT", "MN"],
+  ["MOP", "MO"], ["MRU", "MR"], ["MUR", "MU"], ["MVR", "MV"], ["MWK", "MW"],
+  ["MXN", "MX"], ["MYR", "MY"], ["MZN", "MZ"], ["NAD", "NA"], ["NGN", "NG"],
+  ["NIO", "NI"], ["NOK", "BV NO SJ"], ["NPR", "NP"], ["NZD", "CK NU NZ PN TK"],
+  ["OMR", "OM"], ["PAB", "PA"], ["PEN", "PE"], ["PGK", "PG"], ["PHP", "PH"],
+  ["PKR", "PK"], ["PLN", "PL"], ["PYG", "PY"], ["QAR", "QA"], ["RON", "RO"],
+  ["RSD", "RS"], ["RUB", "RU"], ["RWF", "RW"], ["SAR", "SA"], ["SBD", "SB"],
+  ["SCR", "SC"], ["SDG", "SD"], ["SEK", "SE"], ["SGD", "SG"], ["SHP", "SH"],
+  ["SLE", "SL"], ["SOS", "SO"], ["SRD", "SR"], ["SSP", "SS"], ["STN", "ST"],
+  ["USD", "AS BQ EC FM GU IO MH MP PR PW SV TC TL UM US VG VI"], ["UYU", "UY"],
+  ["UZS", "UZ"], ["VES", "VE"], ["VND", "VN"], ["VUV", "VU"], ["WST", "WS"],
+  ["XAF", "CF CG CM GA GQ TD"], ["XCD", "AG AI DM GD KN LC MS VC"], ["XCG", "CW SX"],
+  ["XOF", "BF BJ CI GW ML NE SN TG"], ["XPF", "NC PF WF"], ["YER", "YE"],
+  ["ZAR", "ZA"], ["ZMW", "ZM"], ["ZWG", "ZW"],
+].flatMap(([currency, regions]) =>
+  regions.split(" ").map((region) => [region, currency])
+));
+const SUPPORTED_CURRENCIES = new Set(Object.values(REGION_CURRENCIES));
+const currencyNames = typeof Intl.DisplayNames === "function"
+  ? new Intl.DisplayNames([navigator.language || "en"], { type: "currency" })
+  : null;
+
+function getDefaultCurrency() {
+  const region = (navigator.language || "").match(/(?:^|[-_])([A-Z]{2})(?:$|[-_])/i);
+  const currency = region && REGION_CURRENCIES[region[1].toUpperCase()];
+  return currency && SUPPORTED_CURRENCIES.has(currency) ? currency : "USD";
+}
 
 const incomeCategories = ["Salary", "Freelance", "Gift", "Other"];
 const expenseCategories = [
@@ -27,6 +74,12 @@ const expenseTotalEl = document.getElementById("expense-total");
 const balanceTotalEl = document.getElementById("balance-total");
 const budgetLeftTotalEl = document.getElementById("budget-left-total");
 const budgetInput = document.getElementById("budget-input");
+const currencySelect = document.getElementById("currency-select");
+const currencyNoteEl = document.getElementById("currency-note");
+const adminToggleBtn = document.getElementById("admin-toggle-btn");
+const adminPanelEl = document.getElementById("admin-panel");
+const adminLoginCountEl = document.getElementById("admin-login-count");
+const adminLoginRecordsEl = document.getElementById("admin-login-records");
 const saveBudgetBtn = document.getElementById("save-budget-btn");
 const exportDataBtn = document.getElementById("export-data-btn");
 const printRecordsBtn = document.getElementById("print-records-btn");
@@ -94,6 +147,14 @@ const signOutBtn = document.getElementById("sign-out-btn");
 
 let editingTransactionId = null;
 let monthlyBudget = DEFAULT_BUDGET;
+let currencyCode = getDefaultCurrency();
+let activeCurrencyCode = BASE_CURRENCY;
+let exchangeRates = { USD: 1 };
+let exchangeRatesLoaded = false;
+let exchangeRateUpdatedAt = null;
+let exchangeRateError = "";
+let currencySettingsAvailable = true;
+let localCurrencyStorageAvailable = true;
 let transactions = [];
 let activeDrilldownType = null;
 let currentUser = null;
@@ -147,10 +208,140 @@ function normalizeTransaction(item) {
 }
 
 function formatCurrency(value) {
-  return new Intl.NumberFormat("en-US", {
+  const amount = toDisplayCurrency(Number(value) || 0);
+  return new Intl.NumberFormat(navigator.language || "en-US", {
     style: "currency",
-    currency: "USD",
-  }).format(Number(value) || 0);
+    currency: activeCurrencyCode,
+  }).format(amount);
+}
+
+function getActiveExchangeRate() {
+  const rate = activeCurrencyCode === BASE_CURRENCY ? 1 : Number(exchangeRates[activeCurrencyCode]);
+  if (!Number.isFinite(rate) || rate <= 0) {
+    throw new Error(`No live exchange rate is available for ${activeCurrencyCode}.`);
+  }
+  return rate;
+}
+
+function toDisplayCurrency(baseAmount) {
+  return (Number(baseAmount) || 0) * getActiveExchangeRate();
+}
+
+function toBaseCurrency(displayAmount) {
+  const amount = Number(displayAmount);
+  if (!Number.isFinite(amount)) return NaN;
+  return Number((amount / getActiveExchangeRate()).toFixed(2));
+}
+
+async function loadExchangeRates(requiredCurrency) {
+  if (requiredCurrency === BASE_CURRENCY) return;
+  if (exchangeRatesLoaded && Number.isFinite(Number(exchangeRates[requiredCurrency]))) return;
+
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), 10000);
+  let response;
+  try {
+    response = await fetch(EXCHANGE_RATE_URL, {
+      headers: { Accept: "application/json" },
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error.name === "AbortError") throw new Error("The exchange-rate request timed out.");
+    throw new Error(`Could not load live exchange rates: ${error.message}`);
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+
+  if (!response.ok) {
+    throw new Error(`The exchange-rate service returned ${response.status}.`);
+  }
+  const data = await response.json();
+  if (!data || !/^\d{4}-\d{2}-\d{2}$/.test(data.date || "") || !data.usd) {
+    throw new Error("The exchange-rate service returned invalid data.");
+  }
+
+  const rates = Object.fromEntries(
+    Object.entries(data.usd).map(([code, rate]) => [code.toUpperCase(), rate])
+  );
+  rates[BASE_CURRENCY] = 1;
+  if (!Number.isFinite(Number(rates[requiredCurrency])) || Number(rates[requiredCurrency]) <= 0) {
+    throw new Error(`No live exchange rate is available for ${requiredCurrency}.`);
+  }
+  exchangeRates = rates;
+  exchangeRatesLoaded = true;
+  const updatedAt = Date.parse(`${data.date}T00:00:00Z`);
+  exchangeRateUpdatedAt = Number.isFinite(updatedAt) ? new Date(updatedAt) : null;
+}
+
+function populateCurrencies() {
+  const currencies = [...SUPPORTED_CURRENCIES]
+    .map((code) => ({
+      code,
+      name: currencyNames ? currencyNames.of(code) : code,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name, navigator.language || "en"));
+
+  currencySelect.replaceChildren();
+  currencies.forEach(({ code, name }) => {
+    const option = document.createElement("option");
+    option.value = code;
+    option.textContent = `${name} (${code})`;
+    currencySelect.appendChild(option);
+  });
+  currencySelect.value = currencyCode;
+}
+
+function getLocalCurrencyKeys(userId) {
+  const key = `budget-tracker-currency-${userId}`;
+  return { currency: key, pending: `${key}-pending` };
+}
+
+function readLocalCurrencyPreference(userId) {
+  const keys = getLocalCurrencyKeys(userId);
+  try {
+    const currency = localStorage.getItem(keys.currency);
+    return {
+      currency: SUPPORTED_CURRENCIES.has(currency) ? currency : null,
+      pending: localStorage.getItem(keys.pending) === "true",
+    };
+  } catch {
+    localCurrencyStorageAvailable = false;
+    return { currency: null, pending: false };
+  }
+}
+
+function saveLocalCurrencyPreference(userId, currency) {
+  const keys = getLocalCurrencyKeys(userId);
+  localStorage.setItem(keys.currency, currency);
+  localStorage.setItem(keys.pending, "true");
+}
+
+function clearLocalCurrencyPending(userId) {
+  try {
+    localStorage.removeItem(getLocalCurrencyKeys(userId).pending);
+  } catch {
+    localCurrencyStorageAvailable = false;
+  }
+}
+
+function refreshCurrencyNote() {
+  const conversionMessage = activeCurrencyCode === BASE_CURRENCY
+    ? currencyCode === BASE_CURRENCY
+      ? "Amounts are shown in USD."
+      : `Live rates are unavailable for ${currencyCode}: ${exchangeRateError}. Amounts are temporarily shown in USD.`
+    : `Converted from USD using ExchangeRate-API rates updated ${exchangeRateUpdatedAt
+      ? exchangeRateUpdatedAt.toLocaleString()
+      : "recently"}. Stored amounts remain in USD.`;
+  const storageMessage = currencySettingsAvailable
+    ? ""
+    : localCurrencyStorageAvailable
+      ? " Currency is saved in this browser until the Supabase currency migration is applied."
+      : " Browser storage is unavailable; apply the Supabase currency migration to save currency preferences.";
+  currencyNoteEl.textContent = `${conversionMessage}${storageMessage}`;
+  currencyNoteEl.classList.toggle(
+    "warning",
+    !currencySettingsAvailable || activeCurrencyCode !== currencyCode
+  );
 }
 
 function escapeHtml(value) {
@@ -307,7 +498,7 @@ function openDetailDialog(title, explanation, metrics, items = [], options = {})
   detailExplanationEl.textContent = explanation;
   detailActionBarEl.hidden = !options.editBudget;
   if (options.editBudget) {
-    detailBudgetInput.value = monthlyBudget;
+    detailBudgetInput.value = toDisplayCurrency(monthlyBudget);
   }
   detailMetricsEl.innerHTML = metrics
     .map(
@@ -1168,7 +1359,7 @@ function fillFormWithTransaction(item) {
   typeSelect.value = item.type;
   populateCategories();
   categorySelect.value = item.category;
-  amountInput.value = item.amount;
+  amountInput.value = toDisplayCurrency(item.amount);
   dateInput.value = item.date;
   descriptionInput.value = item.description;
   submitButton.textContent = "Update Transaction";
@@ -1176,7 +1367,7 @@ function fillFormWithTransaction(item) {
 }
 
 function refreshBudgetDisplay() {
-  budgetInput.value = monthlyBudget;
+  budgetInput.value = toDisplayCurrency(monthlyBudget);
   const remaining = monthlyBudget - calculateTotals(getFilteredTransactions()).expense;
   const status = remaining >= 0 ? "within budget" : "over budget";
   saveBudgetBtn.title = `Current budget is ${formatCurrency(monthlyBudget)} (${status})`;
@@ -1187,11 +1378,12 @@ async function addOrUpdateTransaction(event) {
 
   const type = typeSelect.value;
   const category = categorySelect.value;
-  const amount = Number(amountInput.value);
+  const displayAmount = Number(amountInput.value);
+  const amount = toBaseCurrency(displayAmount);
   const date = dateInput.value || new Date().toISOString().slice(0, 10);
   const description = descriptionInput.value.trim();
 
-  if (!amount || amount <= 0) {
+  if (!displayAmount || displayAmount <= 0 || !Number.isFinite(amount) || amount <= 0) {
     alert("Please enter a valid amount greater than zero.");
     return;
   }
@@ -1284,16 +1476,23 @@ async function handleDeleteClick(event) {
 }
 
 async function handleBudgetSave() {
-  const value = Number(budgetInput.value);
+  const displayValue = Number(budgetInput.value);
 
-  if (!value || value < 0) {
+  if (!displayValue || displayValue < 0) {
     alert("Please enter a valid monthly budget greater than zero.");
     return;
   }
 
-  const nextBudget = Number(value.toFixed(2));
+  const nextBudget = toBaseCurrency(displayValue);
+  if (!Number.isFinite(nextBudget) || nextBudget <= 0) {
+    alert("Please enter a valid monthly budget greater than zero.");
+    return;
+  }
   try {
-    await window.budgetBackend.saveBudget(currentUser.id, nextBudget);
+    await window.budgetBackend.saveSettings(currentUser.id, {
+      monthlyBudget: nextBudget,
+      currency: currencyCode,
+    });
     monthlyBudget = nextBudget;
     refreshBudgetDisplay();
     renderTransactions();
@@ -1302,11 +1501,66 @@ async function handleBudgetSave() {
   }
 }
 
+async function handleCurrencyChange() {
+  const nextCurrency = currencySelect.value;
+  if (!SUPPORTED_CURRENCIES.has(nextCurrency)) {
+    currencySelect.value = currencyCode;
+    alert("Please select a supported currency.");
+    return;
+  }
+
+  const pendingInputAmounts = [budgetInput, detailBudgetInput, amountInput].map((input) => ({
+    input,
+    baseAmount: input.value.trim() ? toBaseCurrency(input.value) : null,
+  }));
+  currencySelect.disabled = true;
+  try {
+    try {
+      await loadExchangeRates(nextCurrency);
+    } catch (error) {
+      exchangeRateError = error.message;
+      currencySelect.value = activeCurrencyCode;
+      refreshCurrencyNote();
+      alert(`Could not load exchange rates for ${nextCurrency}: ${error.message}`);
+      return;
+    }
+
+    try {
+      await window.budgetBackend.saveSettings(currentUser.id, {
+        monthlyBudget,
+        currency: nextCurrency,
+      });
+      if (currencySettingsAvailable) {
+        clearLocalCurrencyPending(currentUser.id);
+      } else {
+        saveLocalCurrencyPreference(currentUser.id, nextCurrency);
+      }
+      currencyCode = nextCurrency;
+      activeCurrencyCode = nextCurrency;
+      exchangeRateError = "";
+      refreshCurrencyNote();
+      refreshBudgetDisplay();
+      pendingInputAmounts.forEach(({ input, baseAmount }) => {
+        if (baseAmount !== null) input.value = toDisplayCurrency(baseAmount);
+      });
+      renderTransactions();
+      if (activeDrilldownType) openDrilldown(activeDrilldownType);
+    } catch (error) {
+      currencySelect.value = activeCurrencyCode;
+      alert(`Could not save currency: ${error.message}`);
+    }
+  } finally {
+    currencySelect.disabled = false;
+  }
+}
+
 function exportTransactions() {
   const payload = {
     version: STORAGE_VERSION,
     exportedAt: new Date().toISOString(),
+    baseCurrency: BASE_CURRENCY,
     monthlyBudget,
+    currency: currencyCode,
     transactions,
   };
 
@@ -1335,6 +1589,17 @@ function importTransactions(file) {
         : Array.isArray(parsed)
           ? parsed
           : [];
+      const importedCurrency = parsed.currency === undefined
+        ? currencyCode
+        : String(parsed.currency).toUpperCase();
+      if (!SUPPORTED_CURRENCIES.has(importedCurrency)) {
+        throw new Error("The export contains an unsupported currency.");
+      }
+      const importedBaseCurrency = parsed.baseCurrency || BASE_CURRENCY;
+      if (importedBaseCurrency !== BASE_CURRENCY) {
+        throw new Error(`This export uses ${importedBaseCurrency} as its base currency; only USD-based exports are supported.`);
+      }
+      await loadExchangeRates(importedCurrency);
 
       const normalized = incomingTransactions
         .map(normalizeTransaction)
@@ -1354,11 +1619,29 @@ function importTransactions(file) {
         .sort((a, b) => new Date(b.date) - new Date(a.date));
       renderTransactions();
 
-      if (Number(parsed.monthlyBudget) > 0) {
-        const nextBudget = Number(Number(parsed.monthlyBudget).toFixed(2));
-        await window.budgetBackend.saveBudget(currentUser.id, nextBudget);
+      const importedBudget = Number(parsed.monthlyBudget);
+      const nextBudget = Number.isFinite(importedBudget) && importedBudget > 0
+        ? Number(importedBudget.toFixed(2))
+        : monthlyBudget;
+      if (nextBudget !== monthlyBudget || importedCurrency !== currencyCode) {
+        await window.budgetBackend.saveSettings(currentUser.id, {
+          monthlyBudget: nextBudget,
+          currency: importedCurrency,
+        });
+        if (importedCurrency !== currencyCode) {
+          if (currencySettingsAvailable) {
+            clearLocalCurrencyPending(currentUser.id);
+          } else {
+            saveLocalCurrencyPreference(currentUser.id, importedCurrency);
+          }
+        }
         monthlyBudget = nextBudget;
+        currencyCode = importedCurrency;
       }
+      activeCurrencyCode = importedCurrency;
+      exchangeRateError = "";
+      currencySelect.value = activeCurrencyCode;
+      refreshCurrencyNote();
       renderTransactions();
       refreshBudgetDisplay();
       alert(`${importedRows.length} transactions imported to your account.`);
@@ -1440,23 +1723,88 @@ function showSignedOut(message = "") {
 
 async function enterApp(user) {
   currentUser = user;
-  const [storedTransactions, storedBudget] = await Promise.all([
+  const [storedTransactions, storedSettings, adminStats] = await Promise.all([
     window.budgetBackend.loadTransactions(),
-    window.budgetBackend.loadBudget(user.id),
+    window.budgetBackend.loadSettings(user.id),
+    window.budgetBackend.loadAdminDashboardStats(),
   ]);
+  const localCurrencyPreference = readLocalCurrencyPreference(user.id);
+  currencySettingsAvailable = !storedSettings || storedSettings.currencyStorageAvailable !== false;
   transactions = storedTransactions
     .map(normalizeTransaction)
     .filter(Boolean)
     .sort((a, b) => new Date(b.date) - new Date(a.date));
-  monthlyBudget = Number.isFinite(storedBudget) && storedBudget > 0
-    ? storedBudget
+  monthlyBudget = storedSettings && Number.isFinite(storedSettings.monthlyBudget) && storedSettings.monthlyBudget > 0
+    ? storedSettings.monthlyBudget
     : DEFAULT_BUDGET;
+  const pendingCurrencySync = currencySettingsAvailable &&
+    localCurrencyPreference.pending &&
+    SUPPORTED_CURRENCIES.has(localCurrencyPreference.currency);
+  currencyCode = !currencySettingsAvailable || pendingCurrencySync
+    ? localCurrencyPreference.currency || getDefaultCurrency()
+    : storedSettings && SUPPORTED_CURRENCIES.has(storedSettings.currency)
+      ? storedSettings.currency
+      : getDefaultCurrency();
+  activeCurrencyCode = BASE_CURRENCY;
+  exchangeRateUpdatedAt = null;
+  exchangeRatesLoaded = false;
+  exchangeRateError = "";
+  if (currencyCode !== BASE_CURRENCY) {
+    try {
+      await loadExchangeRates(currencyCode);
+      activeCurrencyCode = currencyCode;
+    } catch (error) {
+      activeCurrencyCode = BASE_CURRENCY;
+      exchangeRateError = error.message;
+    }
+  }
+  currencySelect.value = activeCurrencyCode;
+  refreshCurrencyNote();
 
-  if (storedBudget === null) {
-    await window.budgetBackend.saveBudget(user.id, monthlyBudget);
+  let settingsSaved = false;
+  if (pendingCurrencySync) {
+    await window.budgetBackend.saveSettings(user.id, {
+      monthlyBudget,
+      currency: currencyCode,
+    });
+    clearLocalCurrencyPending(user.id);
+    settingsSaved = true;
+  }
+
+  if ((!storedSettings || !SUPPORTED_CURRENCIES.has(storedSettings.currency)) && !settingsSaved) {
+    await window.budgetBackend.saveSettings(user.id, {
+      monthlyBudget,
+      currency: currencyCode,
+    });
   }
 
   signedInEmailEl.textContent = user.email || "Signed in";
+  adminToggleBtn.hidden = !adminStats.isAdmin;
+  adminPanelEl.hidden = true;
+  adminToggleBtn.setAttribute("aria-expanded", "false");
+  if (adminStats.isAdmin) {
+    adminLoginCountEl.textContent = new Intl.NumberFormat(navigator.language || "en-US")
+      .format(adminStats.loggedInUsers);
+    const dateFormatter = new Intl.DateTimeFormat(navigator.language || "en-US", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+    adminLoginRecordsEl.innerHTML = adminStats.loginRecords.length
+      ? adminStats.loginRecords.map((record) => `
+          <tr>
+            <td>${escapeHtml(record.email || "Unknown")}</td>
+            <td>${record.last_sign_in_at
+              ? escapeHtml(dateFormatter.format(new Date(record.last_sign_in_at)))
+              : "Never"}</td>
+            <td>${record.created_at
+              ? escapeHtml(dateFormatter.format(new Date(record.created_at)))
+              : "Unknown"}</td>
+          </tr>
+        `).join("")
+      : '<tr><td colspan="3" class="empty-state">No sign-in records yet.</td></tr>';
+  } else {
+    adminLoginRecordsEl.replaceChildren();
+  }
   authScreen.hidden = true;
   appShell.hidden = false;
   filterMonthInput.value = getCurrentMonthKey();
@@ -1611,6 +1959,19 @@ signOutBtn.addEventListener("click", async () => {
   }
 });
 
+adminToggleBtn.addEventListener("click", () => {
+  const isExpanded = adminToggleBtn.getAttribute("aria-expanded") === "true";
+  adminToggleBtn.setAttribute("aria-expanded", String(!isExpanded));
+  adminPanelEl.hidden = isExpanded;
+  adminToggleBtn.setAttribute(
+    "aria-label",
+    isExpanded ? "Open visitor records" : "Close visitor records"
+  );
+  if (!isExpanded) {
+    adminPanelEl.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+});
+
 form.addEventListener("submit", addOrUpdateTransaction);
 tableBody.addEventListener("click", handleDeleteClick);
 resetBtn.addEventListener("click", async () => {
@@ -1629,6 +1990,7 @@ resetBtn.addEventListener("click", async () => {
 });
 
 saveBudgetBtn.addEventListener("click", handleBudgetSave);
+currencySelect.addEventListener("change", handleCurrencyChange);
 exportDataBtn.addEventListener("click", exportTransactions);
 printRecordsBtn.addEventListener("click", () => printRecords(transactions, "Transaction Records"));
 importDataBtn.addEventListener("click", () => importFileInput.click());
@@ -1661,16 +2023,23 @@ closeDetailBtn.addEventListener("click", () => {
 });
 
 detailSaveBudgetBtn.addEventListener("click", async () => {
-  const value = Number(detailBudgetInput.value);
-  if (!value || value < 0) {
+  const displayValue = Number(detailBudgetInput.value);
+  if (!displayValue || displayValue < 0) {
     alert("Please enter a valid monthly budget greater than zero.");
     return;
   }
-  const nextBudget = Number(value.toFixed(2));
+  const nextBudget = toBaseCurrency(displayValue);
+  if (!Number.isFinite(nextBudget) || nextBudget <= 0) {
+    alert("Please enter a valid monthly budget greater than zero.");
+    return;
+  }
   try {
-    await window.budgetBackend.saveBudget(currentUser.id, nextBudget);
+    await window.budgetBackend.saveSettings(currentUser.id, {
+      monthlyBudget: nextBudget,
+      currency: currencyCode,
+    });
     monthlyBudget = nextBudget;
-    budgetInput.value = monthlyBudget;
+    budgetInput.value = toDisplayCurrency(monthlyBudget);
     refreshBudgetDisplay();
     renderTransactions();
     if (activeDrilldownType) openDrilldown(activeDrilldownType);
@@ -1739,5 +2108,6 @@ filterTypeInput.addEventListener("change", renderTransactions);
 filterCategoryInput.addEventListener("change", renderTransactions);
 searchInput.addEventListener("input", renderTransactions);
 
+populateCurrencies();
 initializeApp();
 
